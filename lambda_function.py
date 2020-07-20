@@ -101,8 +101,8 @@ def post_dweets():
 
 async def main():
     await TaskScheduler.schedule_task(
-        10,
-        TaskScheduler.repeat_with_timeout(5, fetch_and_save_dweet),
+        900,
+        TaskScheduler.repeat_with_timeout(60, fetch_and_save_dweet),
         post_dweets
     )
 
