@@ -50,6 +50,7 @@ class StorageHandler:
 
     @staticmethod
     def save_dweet(dweet: dict):
+        print(dweet)
         session.add(Dweet(
             temperature=dweet.get('temperature'),
             humidity=dweet.get('humidity')
@@ -108,12 +109,14 @@ async def main():
 
 
 def handler(event=None, context=None):
+    print("Running example lambda function...")
     try:
         StorageHandler.init_storage()
         asyncio.run(main())
     except Exception:
         exec_info = traceback.format_exception(*sys.exc_info())
         return {'error': exec_info}
+    print("Done with example lambda function...")
 
 
 if __name__ == "__main__":
