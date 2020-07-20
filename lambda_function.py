@@ -50,7 +50,6 @@ class StorageHandler:
 
     @staticmethod
     def save_dweet(dweet: dict):
-        print(dweet)
         session.add(Dweet(
             temperature=dweet.get('temperature'),
             humidity=dweet.get('humidity')
@@ -61,7 +60,7 @@ class StorageHandler:
     def get_dweets():
         return [{'temperature': dweet.temperature,
                  'humidity': dweet.humidity
-                 } for dweet in Dweet.query.all()]
+                 } for dweet in session.query(Dweet).all()]
 
 
 class TaskScheduler:
@@ -102,8 +101,8 @@ def post_dweets():
 
 async def main():
     await TaskScheduler.schedule_task(
-        900,
-        TaskScheduler.repeat_with_timeout(60, fetch_and_save_dweet),
+        10,
+        TaskScheduler.repeat_with_timeout(5, fetch_and_save_dweet),
         post_dweets
     )
 
