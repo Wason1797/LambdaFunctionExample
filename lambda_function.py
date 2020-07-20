@@ -4,6 +4,9 @@ import asyncio
 import requests
 import traceback
 
+from models import Dweet
+from db import session, create_models
+
 
 class WebhookApiHandler:
     ENDPOINT = 'https://webhook.site/6f7c6822-4237-4e18-899b-87aaedf728a3'
@@ -41,14 +44,23 @@ class DweetApiHandler:
 
 class StorageHandler:
 
-    @classmethod
-    def save_dweet(cls, dweet: dict):
-        with open('db.txt', 'a') as db:
-            db.write(f"temp={dweet.get('temperature')} humidity={dweet.get('humidity')} \n")
+    @staticmethod
+    def init_storage():
+        create_models()
 
-    @classmethod
-    def get_dweets(cls):
-        return "Placeholder"
+    @staticmethod
+    def save_dweet(dweet: dict):
+        session.add(Dweet(
+            temperature=dweet.get('temperature'),
+            humidity=dweet.get('humidity')
+        ))
+        session.commit()
+
+    @staticmethod
+    def get_dweets():
+        return [{'temperature': dweet.temperature,
+                 'humidity': dweet.humidity
+                 } for dweet in Dweet.query.all()]
 
 
 class TaskScheduler:
@@ -67,9 +79,9 @@ class TaskScheduler:
         try:
             await asyncio.wait_for(coro, timeout)
         except asyncio.TimeoutError:
-            if ending_callback:
-                ending_callback()
             print(f"Task done in {timeout}s")
+        if ending_callback:
+            ending_callback()
 
 
 def fetch_and_save_dweet():
@@ -80,18 +92,29 @@ def fetch_and_save_dweet():
 
 
 def post_dweets():
-    print(WebhookApiHandler.post_payload(
-        {'data': StorageHandler.get_dweets()}
-    ))
+    dweets = StorageHandler.get_dweets()
+    print(dweets)
+    WebhookApiHandler.post_payload(
+        {'data': dweets}
+    )
 
 
 async def main():
     await TaskScheduler.schedule_task(
-        30,
-        TaskScheduler.repeat_with_timeout(5, fetch_and_save_dweet),
+        900,
+        TaskScheduler.repeat_with_timeout(60, fetch_and_save_dweet),
         post_dweets
     )
 
 
+def handler(event=None, context=None):
+    try:
+        StorageHandler.init_storage()
+        asyncio.run(main())
+    except Exception:
+        exec_info = traceback.format_exception(*sys.exc_info())
+        return {'error': exec_info}
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    handler()
